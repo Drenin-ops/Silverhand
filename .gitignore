@@ -1,0 +1,9 @@
+﻿venv/
+__pycache__/
+*.pyc
+*.pyo
+piper/espeak-ng-data/
+piper/*.dll
+piper/*.exe
+piper/*.ort
+test.wav
