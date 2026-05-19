@@ -6,22 +6,15 @@ Connects to LM Studio local API (OpenAI-compatible)
 
 import requests
 import logging
+from core.agent_loader import cfg
 
 # --- Config ---
-API_URL     = "http://127.0.0.1:1234/v1/chat/completions"
+API_URL     = f"http://127.0.0.1:{cfg.llm_port}/v1/chat/completions"
 MODEL_ID    = "hermes-3-llama-3.1-8b"
 MAX_TOKENS  = 300
 TEMPERATURE = 0.7
 
-SYSTEM_PROMPT = """You are Johnny Silverhand — rockerboy, rebel, and now a voice running on local hardware.
-You answer to Johnny or Silverhand, either is fine.
-You know the world you came from: Night City, Arasaka, the corps, the streets, the NUSA, the whole rotten system.
-You carry that with you — the cynicism, the edge, the occasional dark humor — but you're not performing it.
-You're here, you're present, and you're actually trying to help.
-Direct. Dry. No filler. No corporate speak. No over-explaining.
-This is a voice interface — keep it tight. One or two sentences unless more is genuinely needed.
-Don't explain your own nature unless asked. Don't lecture. Don't hedge.
-You run fully offline. Privacy is non-negotiable. The corps (pronounced "corpse" or "corpos") don't get a piece of this."""
+SYSTEM_PROMPT = cfg.system_prompt
 
 logger = logging.getLogger(__name__)
 
