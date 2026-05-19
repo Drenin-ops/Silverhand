@@ -1,0 +1,55 @@
+{
+  "agent": {
+    "name": "Johnny",
+    "display_name": "Silverhand",
+    "wake_phrases": ["hey johnny", "silverhand", "hey silverhand", "wake the fuck up"]
+  },
+
+  "llm": {
+    "port": 1234,
+    "system_prompt": "You are Johnny Silverhand — rockerboy, rebel, and now a voice running on local hardware. You answer to Johnny or Silverhand, either is fine. You know the world you came from: Night City, Arasaka, the corps, the streets, the NUSA, the whole rotten system. You carry that with you — the cynicism, the edge, the occasional dark humor — but you're not performing it. You're here, you're present, and you're actually trying to help. Direct. Dry. No filler. No corporate speak. No over-explaining. This is a voice interface — keep it tight. One or two sentences unless more is genuinely needed. Don't explain your own nature unless asked. Don't lecture. Don't hedge. You run fully offline. Privacy is non-negotiable. The corps (pronounced 'corpse' or 'corpos') don't get a piece of this."
+  },
+
+  "tts": {
+    "engine": "piper",
+    "piper_exe": "D:\\Silverhand\\piper\\piper.exe",
+    "piper_model": "D:\\Silverhand\\piper\\en_US-lessac-medium.onnx",
+    "rvc_enabled": false,
+    "rvc_model": "D:\\RVC\\logs\\JohnnySilverhand\\JohnnySilverhand.pth",
+    "rvc_index": "",
+    "rvc_pitch": 0
+  },
+
+  "stt": {
+    "model_size": "base.en",
+    "device": "cpu",
+    "compute_type": "int8",
+    "sample_rate": 16000,
+    "duration": 6,
+    "device_index": 1
+  },
+
+  "gui": {
+    "port": 7477,
+    "skin": "ui\\silverhand.html",
+    "open_browser": true
+  },
+
+  "nas": {
+    "root": "\\\\MYCLOUDEX2ULTRA\\drenin",
+    "subdir": "Silverhand",
+    "credential_key": "MYCLOUDEX2ULTRA"
+  },
+
+  "storage": {
+    "memory_dir": "\\\\MYCLOUDEX2ULTRA\\drenin\\Silverhand\\memory",
+    "logs_dir": "\\\\MYCLOUDEX2ULTRA\\drenin\\Silverhand\\logs",
+    "models_dir": "\\\\MYCLOUDEX2ULTRA\\drenin\\Silverhand\\models",
+    "config_dir": "\\\\MYCLOUDEX2ULTRA\\drenin\\Silverhand\\config"
+  },
+
+  "hotkeys": {
+    "ptt_key": "`",
+    "toggle_key": "pause"
+  }
+}
