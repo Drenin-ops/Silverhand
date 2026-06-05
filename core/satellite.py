@@ -29,9 +29,6 @@ import numpy as np
 import requests as _requests
 import psutil
 
-import sounddevice as sd
-import numpy as np
-
 from core.stt import _get_model
 from core.llm import build_messages
 from core.agent_loader import cfg
@@ -65,16 +62,6 @@ _net_prev      = None   # (bytes_sent, bytes_recv, timestamp)
 
 # ─── TALK STATE ───────────────────────────────────────────────────
 _talk_state: dict = {}   # websocket id → {"buf": bytearray, "history": []}
-
-
-def _play_local(pcm: bytes) -> None:
-    """Play PCM on PC speakers — reuses already-generated audio, no extra RVC call."""
-    try:
-        audio = np.frombuffer(pcm, dtype=np.int16)
-        sd.play(audio, samplerate=16000)
-        sd.wait()
-    except Exception as e:
-        log.warning(f"Local playback failed: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -330,8 +317,6 @@ async def handler(websocket):
                     pcm = await loop.run_in_executor(None, piper_to_pcm, reply)
                     if pcm:
                         await websocket.send(json.dumps({"type": "audio_start"}))
-                        # Play on PC speakers concurrently (fire-and-forget)
-                        loop.run_in_executor(None, _play_local, pcm)
                         CHUNK = 1280
                         for i in range(0, len(pcm), CHUNK):
                             await websocket.send(pcm[i:i + CHUNK])
