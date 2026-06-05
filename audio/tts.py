@@ -137,24 +137,36 @@ def speak(text: str) -> bool:
 
 def piper_to_pcm(text: str) -> bytes | None:
     text = prep(text)
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-        tmp = f.name
+    tmp_piper = None
+    tmp_rvc = None
     try:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            tmp_piper = f.name
         r = subprocess.run(
-            [cfg.piper_exe, "--model", cfg.piper_model, "--output_file", tmp],
+            [cfg.piper_exe, "--model", cfg.piper_model, "--output_file", tmp_piper],
             input=text.encode(), capture_output=True, timeout=30)
-        if r.returncode != 0 or not os.path.getsize(tmp):
+        if r.returncode != 0 or not os.path.getsize(tmp_piper):
             return None
+        play_file = tmp_piper
+        if cfg.rvc_enabled:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                tmp_rvc = f.name
+            if _rvc_convert(tmp_piper, tmp_rvc):
+                play_file = tmp_rvc
         r2 = subprocess.run(
-            ["ffmpeg", "-y", "-i", tmp,
+            ["ffmpeg", "-y", "-i", play_file,
              "-ar", "16000", "-ac", "1", "-f", "s16le", "-"],
-            capture_output=True, timeout=30)
+            capture_output=True, timeout=90)
         return r2.stdout if r2.returncode == 0 else None
     except Exception:
         return None
     finally:
-        if os.path.exists(tmp):
-            os.remove(tmp)
+        for f in (tmp_piper, tmp_rvc):
+            if f and os.path.exists(f):
+                try:
+                    os.remove(f)
+                except Exception:
+                    pass
 
 
 if __name__ == "__main__":
