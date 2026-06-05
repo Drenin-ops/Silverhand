@@ -29,10 +29,13 @@ import numpy as np
 import requests as _requests
 import psutil
 
+import sounddevice as sd
+import numpy as np
+
 from core.stt import _get_model
 from core.llm import build_messages
 from core.agent_loader import cfg
-from audio.tts import piper_to_pcm
+from audio.tts import piper_to_pcm, warmup_rvc
 
 # pynvml for RTX 4070 Ti precise GPU metrics
 try:
@@ -62,6 +65,16 @@ _net_prev      = None   # (bytes_sent, bytes_recv, timestamp)
 
 # ─── TALK STATE ───────────────────────────────────────────────────
 _talk_state: dict = {}   # websocket id → {"buf": bytearray, "history": []}
+
+
+def _play_local(pcm: bytes) -> None:
+    """Play PCM on PC speakers — reuses already-generated audio, no extra RVC call."""
+    try:
+        audio = np.frombuffer(pcm, dtype=np.int16)
+        sd.play(audio, samplerate=16000)
+        sd.wait()
+    except Exception as e:
+        log.warning(f"Local playback failed: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -317,10 +330,12 @@ async def handler(websocket):
                     pcm = await loop.run_in_executor(None, piper_to_pcm, reply)
                     if pcm:
                         await websocket.send(json.dumps({"type": "audio_start"}))
+                        # Play on PC speakers concurrently (fire-and-forget)
+                        loop.run_in_executor(None, _play_local, pcm)
                         CHUNK = 1280
                         for i in range(0, len(pcm), CHUNK):
                             await websocket.send(pcm[i:i + CHUNK])
-                            await asyncio.sleep(0.035)
+                            await asyncio.sleep(0.01)
                         await websocket.send(json.dumps({"type": "audio_end"}))
                         log.info(f"Audio streamed: {len(pcm)} bytes")
 
@@ -362,6 +377,7 @@ async def push_metrics_loop():
 
 async def _serve():
     log.info(f"Silverhand bridge starting on port {BRIDGE_PORT}")
+    warmup_rvc()  # pre-load RVC model so first voice reply has no startup delay
     async with websockets.serve(handler, "0.0.0.0", BRIDGE_PORT):
         await asyncio.gather(
             asyncio.Future(),   # run forever
