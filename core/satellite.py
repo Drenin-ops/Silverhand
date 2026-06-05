@@ -32,6 +32,7 @@ import psutil
 from core.stt import _get_model
 from core.llm import build_messages
 from core.agent_loader import cfg
+from audio.tts import piper_to_pcm
 
 # pynvml for RTX 4070 Ti precise GPU metrics
 try:
@@ -313,6 +314,15 @@ async def handler(websocket):
                         "type": "reply",
                         "text": reply
                     }))
+                    pcm = await loop.run_in_executor(None, piper_to_pcm, reply)
+                    if pcm:
+                        await websocket.send(json.dumps({"type": "audio_start"}))
+                        CHUNK = 1280
+                        for i in range(0, len(pcm), CHUNK):
+                            await websocket.send(pcm[i:i + CHUNK])
+                            await asyncio.sleep(0.035)
+                        await websocket.send(json.dumps({"type": "audio_end"}))
+                        log.info(f"Audio streamed: {len(pcm)} bytes")
 
             elif cmd == "talk_cancel":
                 _talk_state.pop(id(websocket), None)
