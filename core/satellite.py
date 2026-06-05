@@ -25,7 +25,13 @@ import time
 from typing import Set
 
 import websockets
+import numpy as np
+import requests as _requests
 import psutil
+
+from core.stt import _get_model
+from core.llm import build_messages
+from core.agent_loader import cfg
 
 # pynvml for RTX 4070 Ti precise GPU metrics
 try:
@@ -41,6 +47,7 @@ log = logging.getLogger("satellite")
 BRIDGE_PORT = 8877
 METRICS_CACHE_TTL = 1.5   # seconds — don't hammer psutil
 NETWORK_CACHE_TTL = 10.0  # ARP scan is slow, cache it
+LLM_MODEL = "hermes-3-llama-3.1-8b"
 
 # ─── CONNECTED CLIENTS ────────────────────────────────────────────
 clients: Set[websockets.WebSocketServerProtocol] = set()
@@ -53,7 +60,7 @@ _network_ts    = 0.0
 _net_prev      = None   # (bytes_sent, bytes_recv, timestamp)
 
 # ─── TALK STATE ───────────────────────────────────────────────────
-_talk_state: dict = {}   # websocket id → {"buf": bytearray}
+_talk_state: dict = {}   # websocket id → {"buf": bytearray, "history": []}
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -194,33 +201,63 @@ def get_network() -> dict:
     return {"type": "network", "devices": _network_cache}
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  TALK PIPELINE (stub — wired into Silverhand main.py Phase 4)
-# ═══════════════════════════════════════════════════════════════════
-
-# This will be wired to main.py's _run_pipeline() in Phase 4.
-# For now it returns a placeholder so the board UI works end-to-end.
-
-_talk_callback = None   # set by main.py: satellite.set_talk_callback(fn)
-
-def set_talk_callback(fn):
-    """
-    Called by main.py to register the LLM pipeline handler.
-    fn signature: fn(trigger_text: str) -> str  (returns reply text)
-    """
-    global _talk_callback
-    _talk_callback = fn
-    log.info("Talk callback registered from main.py")
-
 
 # ═══════════════════════════════════════════════════════════════════
-#  AUDIO PROCESSING (stub — faster-whisper wires in Phase 3)
+#  AUDIO PROCESSING — faster-whisper STT + LLM pipeline
 # ═══════════════════════════════════════════════════════════════════
 
-def _process_audio(buf: bytearray) -> str:
+def _process_audio(buf: bytearray, history: list) -> str:
     seconds = len(buf) / 32000  # 16kHz × 16-bit mono = 32000 bytes/s
     log.info(f"Audio received: {len(buf)} bytes ({seconds:.1f}s)")
-    return "Bridge connected. STT wires in Phase 3."
+
+    # Convert int16 PCM → float32 normalised
+    audio = np.frombuffer(buf, dtype=np.int16).astype(np.float32) / 32768.0
+
+    # Silence check
+    if len(audio) == 0 or np.max(np.abs(audio)) < 0.005:
+        log.info("Audio too quiet or empty — skipping STT")
+        return "I didn't catch that."
+
+    # Transcribe
+    try:
+        model = _get_model()
+        segments, _ = model.transcribe(audio, beam_size=5, language="en")
+        text = " ".join(seg.text.strip() for seg in segments).strip()
+    except Exception as e:
+        log.warning(f"STT failed: {e}")
+        return "I didn't catch that."
+
+    if not text:
+        return "I didn't catch that."
+    log.info(f"Heard: {text}")
+
+    # LLM — inline call with max_tokens=80 (llm.chat() hardcodes 600)
+    messages = build_messages(history, text)
+    try:
+        resp = _requests.post(
+            f"http://127.0.0.1:{cfg.llm_port}/v1/chat/completions",
+            json={
+                "model":       LLM_MODEL,
+                "messages":    messages,
+                "max_tokens":  80,
+                "temperature": 0.75,
+                "stream":      False,
+            },
+            timeout=90,
+        )
+        resp.raise_for_status()
+        reply = resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        log.warning(f"LLM failed: {e}")
+        return "Lost the signal."
+
+    if not reply:
+        return "Lost the signal."
+
+    # Append to session history — only on success
+    history.append({"role": "user",      "content": text})
+    history.append({"role": "assistant", "content": reply})
+    return reply
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -262,13 +299,16 @@ async def handler(websocket):
                 await websocket.send(json.dumps(get_network()))
 
             elif cmd == "talk_start":
-                _talk_state[id(websocket)] = {"buf": bytearray()}
+                _talk_state[id(websocket)] = {"buf": bytearray(), "history": []}
                 log.info("Talk started")
 
             elif cmd == "talk_end":
                 state = _talk_state.pop(id(websocket), None)
                 if state:
-                    reply = _process_audio(state["buf"])
+                    loop = asyncio.get_running_loop()
+                    reply = await loop.run_in_executor(
+                        None, _process_audio, state["buf"], state["history"]
+                    )
                     await websocket.send(json.dumps({
                         "type": "reply",
                         "text": reply
