@@ -262,9 +262,15 @@
     padding:8px 16px; text-align:center; z-index:50;
   }
   #reconnect-banner.show { display:block; }
+
+  /* ── PARTICLE FACE replaces the spritesheet portrait ── */
+  #portrait { display:none !important; }
+  #particle-face { position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; }
 </style>
 </head>
 <body class="state-idle">
+
+<canvas id="particle-face"></canvas>
 
 <div id="titlebar">
   <div id="logo">SILVERHAND</div>
@@ -341,7 +347,11 @@
   </div>
 </div>
 
+<script src="/assets/particle-face.js"></script>
 <script>
+// ── PARTICLE FACE: boot (Johnny's red/glitch profile, starts idle) ──
+ParticleFace.init({ count: 2600, style: 'johnny' });
+
 // ── BARCODE ───────────────────────────────────────────────────────────────────
 (function(){
   const bc = document.getElementById('barcode');
@@ -476,6 +486,7 @@ function setState(raw) {
   const s = ALIASES[raw.toLowerCase()] || raw.toLowerCase();
   document.body.className = 'state-' + s;
   showQuote(s);
+  if (window.ParticleFace) ParticleFace.setExpression(s);  // drive the particle face
 }
 
 // ── CONVERSATION ──────────────────────────────────────────────────────────────
