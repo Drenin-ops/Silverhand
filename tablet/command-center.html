@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<title>SILVERHAND — CONNECT</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Bebas+Neue&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:        #c0392b;
+    --red-bright: #e74c3c;
+    --red-dim:    #7b1f1a;
+    --red-glow:   rgba(192,57,43,0.35);
+    --green:      #2ecc71;
+    --dark:       #0a0a0a;
+    --panel:      rgba(16,16,16,0.92);
+    --border:     rgba(192,57,43,0.4);
+    --text:       #d0ccc8;
+    --text-dim:   #7a7570;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body {
+    height:100%;
+    background:
+      radial-gradient(1000px 500px at 50% -10%, rgba(192,57,43,0.12), transparent 60%),
+      var(--dark);
+    font-family:'Rajdhani',sans-serif; color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:1000;
+    background:repeating-linear-gradient(0deg, transparent, transparent 2px,
+      rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+  }
+  .card {
+    width:min(92vw, 420px); background:var(--panel);
+    border:1px solid var(--border); border-radius:4px;
+    padding:32px 26px 26px; text-align:center; position:relative;
+  }
+  .card::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--red-bright); box-shadow:0 0 14px var(--red-glow);
+  }
+  .brand {
+    font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:0.14em;
+    color:var(--red-bright); text-shadow:0 0 20px var(--red-glow); line-height:1;
+  }
+  .sub {
+    font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:0.3em;
+    color:var(--text-dim); margin:6px 0 26px;
+  }
+  label {
+    display:block; text-align:left; font-family:'Share Tech Mono',monospace;
+    font-size:10px; letter-spacing:0.16em; color:var(--text-dim);
+    text-transform:uppercase; margin:14px 2px 5px;
+  }
+  input[type=text] {
+    width:100%; background:#080808; border:1px solid var(--border);
+    color:var(--text); font-family:'Share Tech Mono',monospace; font-size:16px;
+    padding:11px 12px; border-radius:2px; letter-spacing:0.04em;
+  }
+  input[type=text]:focus { outline:none; border-color:var(--red-bright); }
+  .row { display:flex; gap:10px; }
+  .row .host { flex:3; } .row .port { flex:1; }
+  button {
+    width:100%; margin-top:22px; cursor:pointer;
+    background:linear-gradient(180deg, var(--red), var(--red-dim));
+    border:1px solid var(--red-bright); color:#fff;
+    font-family:'Orbitron',sans-serif; font-weight:700; font-size:17px;
+    letter-spacing:0.14em; padding:15px; border-radius:3px;
+    text-shadow:0 0 10px rgba(0,0,0,0.6);
+    transition:filter 0.15s ease, transform 0.05s ease;
+  }
+  button:hover { filter:brightness(1.15); }
+  button:active { transform:translateY(1px); }
+  .opts {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin-top:16px; font-family:'Share Tech Mono',monospace; font-size:11px;
+    color:var(--text-dim); letter-spacing:0.06em;
+  }
+  .opts input { width:16px; height:16px; accent-color:var(--red); }
+  .hint {
+    margin-top:18px; font-family:'Share Tech Mono',monospace; font-size:9.5px;
+    color:var(--red-dim); letter-spacing:0.1em; line-height:1.7;
+  }
+  a.direct { color:var(--text-dim); text-decoration:none; border-bottom:1px dotted var(--red-dim); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">SILVERHAND</div>
+    <div class="sub">NETWORK COMMAND CENTER</div>
+
+    <div class="row">
+      <div class="host" style="flex:3">
+        <label>Host IP</label>
+        <input id="host" type="text" inputmode="decimal" value="192.168.1.131" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="port" style="flex:1">
+        <label>Port</label>
+        <input id="port" type="text" inputmode="numeric" value="7477" autocomplete="off">
+      </div>
+    </div>
+
+    <button id="connect">◄ CONNECT ►</button>
+
+    <div class="opts">
+      <input id="auto" type="checkbox">
+      <label for="auto" style="margin:0; text-transform:none; letter-spacing:0.06em;">Auto-connect next time</label>
+    </div>
+
+    <div class="hint">
+      SAVE THIS PAGE TO YOUR HOME SCREEN FOR ONE-TAP ACCESS<br>
+      <a class="direct" id="direct" href="#">jump straight to the monitor →</a>
+    </div>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const KEY = 'silverhand.cmd';
+
+  // Restore saved host/port/auto preference.
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (saved.host) $('host').value = saved.host;
+    if (saved.port) $('port').value = saved.port;
+    if (saved.auto) $('auto').checked = true;
+  } catch (e) {}
+
+  function targetUrl() {
+    const host = ($('host').value || '').trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    const port = ($('port').value || '7477').trim();
+    return `http://${host}:${port}/monitor`;
+  }
+
+  function connect() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        host: $('host').value.trim(),
+        port: $('port').value.trim(),
+        auto: $('auto').checked,
+      }));
+    } catch (e) {}
+    window.location.href = targetUrl();
+  }
+
+  $('connect').addEventListener('click', connect);
+  $('direct').addEventListener('click', e => { e.preventDefault(); connect(); });
+  [$('host'), $('port')].forEach(el =>
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); }));
+
+  // Auto-connect if the box was ticked last time (?stay=1 skips it, so this
+  // page stays usable as an editor).
+  const stay = new URLSearchParams(location.search).has('stay');
+  if (!stay && $('auto').checked) setTimeout(connect, 600);
+</script>
+</body>
+</html>
