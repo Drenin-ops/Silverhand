@@ -76,9 +76,16 @@ class AgentConfig:
 
         # GUI
         gui                     = data["gui"]
+        self.gui_host           = gui.get("host", "127.0.0.1")
         self.gui_port           = gui.get("port", 7477)
         self.gui_skin           = gui.get("skin", "ui\\agent.html")
         self.gui_open_browser   = gui.get("open_browser", True)
+
+        # Network monitor
+        network                 = data.get("network", {})
+        self.net_refresh_seconds = network.get("refresh_seconds", 5)
+        self.net_timeout_ms      = network.get("timeout_ms", 1500)
+        self.net_hosts           = network.get("hosts", [])
 
         # NAS
         nas                     = data["nas"]
@@ -110,7 +117,8 @@ class AgentConfig:
             f"TTS engine:  {self.tts_engine}",
             f"RVC enabled: {self.rvc_enabled}",
             f"STT model:   {self.stt_model_size} on {self.stt_device}",
-            f"GUI port:    {self.gui_port}",
+            f"GUI:         {self.gui_host}:{self.gui_port}",
+            f"Monitor:     {len(self.net_hosts)} host(s), refresh {self.net_refresh_seconds}s",
             f"NAS root:    {self.nas_root}",
             f"Memory dir:  {self.nas_memory_dir}",
         ]

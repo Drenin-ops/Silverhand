@@ -16,15 +16,19 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+from core.agent_loader import cfg
+from core import monitor
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-HOST      = "127.0.0.1"
-PORT      = 7477
-UI_DIR    = Path(__file__).parent          # D:\Silverhand\ui\
-HTML_FILE = UI_DIR / "silverhand.html"
+HOST         = cfg.gui_host                 # "0.0.0.0" exposes it to the LAN
+PORT         = cfg.gui_port
+UI_DIR       = Path(__file__).parent        # D:\Silverhand\ui\
+HTML_FILE    = UI_DIR / "silverhand.html"
+MONITOR_FILE = UI_DIR / "monitor.html"
 
 # ── State ─────────────────────────────────────────────────────────────────────
 
@@ -46,6 +50,21 @@ _app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 @_app.get("/")
 async def index():
     return FileResponse(str(HTML_FILE))
+
+
+@_app.get("/monitor")
+async def monitor_page():
+    """Network command monitor — open this from the tablet."""
+    return FileResponse(str(MONITOR_FILE))
+
+
+@_app.get("/api/monitor")
+def monitor_api():
+    """
+    Live network snapshot as JSON. Defined as a sync endpoint so FastAPI runs
+    the blocking socket/ping probes in its threadpool without stalling the loop.
+    """
+    return JSONResponse(monitor.snapshot())
 
 
 @_app.websocket("/ws")
@@ -148,11 +167,18 @@ def start(on_text_input=None, on_name_request=None, open_browser: bool = True):
     t = threading.Thread(target=_run_server, daemon=True)
     t.start()
 
+    # 0.0.0.0 is a bind address, not something a browser can open — use loopback.
+    local_host = "127.0.0.1" if HOST in ("0.0.0.0", "::") else HOST
+
     if open_browser:
         threading.Timer(
-            1.2, lambda: webbrowser.open(f"http://{HOST}:{PORT}")
+            1.2, lambda: webbrowser.open(f"http://{local_host}:{PORT}")
         ).start()
 
-    print(f"[gui] Server at http://{HOST}:{PORT}")
+    print(f"[gui] Server listening on {HOST}:{PORT}")
+    print(f"[gui] Assistant UI:    http://{local_host}:{PORT}/")
+    print(f"[gui] Command monitor: http://{local_host}:{PORT}/monitor")
+    if HOST in ("0.0.0.0", "::"):
+        print(f"[gui] Reachable from other devices at http://<this-pc-ip>:{PORT}/monitor")
     print(f"[gui] Waiting for browser...")
     return t

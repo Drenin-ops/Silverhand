@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<title>SILVERHAND — NET MONITOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Bebas+Neue&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:        #c0392b;
+    --red-bright: #e74c3c;
+    --red-dim:    #7b1f1a;
+    --red-glow:   rgba(192,57,43,0.35);
+    --green:      #2ecc71;
+    --green-dim:  #1e7a47;
+    --amber:      #e0a422;
+    --dark:       #0a0a0a;
+    --panel:      rgba(16,16,16,0.92);
+    --panel-2:    rgba(24,20,20,0.92);
+    --border:     rgba(192,57,43,0.35);
+    --text:       #d0ccc8;
+    --text-dim:   #7a7570;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body {
+    min-height:100%;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(192,57,43,0.10), transparent 60%),
+      var(--dark);
+    font-family:'Rajdhani',sans-serif;
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  /* scanlines */
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:1000;
+    background:repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+  }
+
+  .wrap { max-width:960px; margin:0 auto; padding:14px 14px 40px; }
+
+  /* ── HEADER ── */
+  header {
+    position:sticky; top:0; z-index:50;
+    background:rgba(4,4,4,0.96); border-bottom:1px solid var(--border);
+    margin:-14px -14px 16px; padding:12px 16px;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .brand {
+    font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:0.12em;
+    color:var(--red-bright); text-shadow:0 0 16px var(--red-glow); line-height:1;
+  }
+  .brand small {
+    display:block; font-family:'Share Tech Mono',monospace; font-size:9.5px;
+    letter-spacing:0.28em; color:var(--text-dim); text-shadow:none; margin-top:2px;
+  }
+  .spacer { flex:1 1 auto; }
+  .pill {
+    font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:0.05em;
+    border:1px solid var(--border); border-radius:2px; padding:5px 10px;
+    color:var(--text); background:var(--panel); white-space:nowrap;
+  }
+  .pill b { color:var(--green); }
+  .pill.bad b { color:var(--red-bright); }
+  .clock { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--text-dim); }
+
+  /* ── CONNECTION BANNER ── */
+  #banner {
+    display:none; margin-bottom:14px; padding:9px 12px;
+    border:1px solid var(--red); border-left-width:3px;
+    background:rgba(192,57,43,0.12); color:var(--red-bright);
+    font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:0.06em;
+  }
+  #banner.show { display:block; }
+
+  /* ── GRID ── */
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); }
+
+  .card {
+    position:relative; overflow:hidden;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--border); border-radius:3px; padding:14px 14px 12px;
+  }
+  .card::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--red-dim);
+  }
+  .card.up::before   { background:var(--green); box-shadow:0 0 12px rgba(46,204,113,0.5); }
+  .card.down::before { background:var(--red-bright); box-shadow:0 0 12px var(--red-glow); }
+
+  .card-head { display:flex; align-items:center; gap:10px; }
+  .dot {
+    width:11px; height:11px; border-radius:50%; flex:none;
+    background:var(--red-dim); box-shadow:0 0 0 rgba(0,0,0,0);
+  }
+  .up .dot   { background:var(--green); box-shadow:0 0 10px var(--green); animation:pulse 2s ease-in-out infinite; }
+  .down .dot { background:var(--red-bright); box-shadow:0 0 8px var(--red-glow); }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+
+  .hname {
+    font-family:'Orbitron',sans-serif; font-weight:700; font-size:16px;
+    letter-spacing:0.02em; color:var(--text);
+  }
+  .role {
+    margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:9px;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim);
+    border:1px solid var(--border); border-radius:2px; padding:2px 6px;
+  }
+  .meta {
+    display:flex; align-items:baseline; gap:10px; margin:8px 0 2px;
+    font-family:'Share Tech Mono',monospace; font-size:12.5px; color:var(--text-dim);
+  }
+  .ip { color:var(--text); }
+  .lat { margin-left:auto; }
+  .lat b { color:var(--green); }
+  .down .lat b { color:var(--red-bright); }
+  .note { font-size:12px; color:var(--text-dim); min-height:15px; }
+
+  .svcs { display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; }
+  .svc {
+    font-family:'Share Tech Mono',monospace; font-size:10.5px; letter-spacing:0.03em;
+    padding:3px 7px; border-radius:2px; border:1px solid var(--border);
+    color:var(--text-dim); display:flex; align-items:center; gap:5px;
+  }
+  .svc .sd { width:6px; height:6px; border-radius:50%; background:var(--red-dim); }
+  .svc.up   { color:#bfe9cf; border-color:var(--green-dim); background:rgba(46,204,113,0.08); }
+  .svc.up .sd   { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .svc.down { color:#e9b8b3; border-color:var(--red-dim); background:rgba(192,57,43,0.08); }
+  .svc.down .sd { background:var(--red-bright); }
+
+  footer {
+    margin-top:20px; text-align:center;
+    font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:0.14em;
+    color:var(--text-dim);
+  }
+  .glitch { color:var(--red-dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">SILVERHAND<small>NETWORK COMMAND MONITOR</small></div>
+    <div class="spacer"></div>
+    <div id="summary" class="pill">SCANNING…</div>
+    <div id="clock" class="clock">--:--:--</div>
+  </header>
+
+  <div id="banner">⚠ SIGNAL LOST — can't reach the Silverhand host. Retrying…</div>
+
+  <div id="grid" class="grid"></div>
+
+  <footer>SILVERHAND // OFFLINE NET WATCH — <span class="glitch">THE CORPS DON'T GET A PIECE OF THIS</span></footer>
+</div>
+
+<script>
+  const REFRESH_MS = 5000;
+  const grid    = document.getElementById('grid');
+  const summary = document.getElementById('summary');
+  const banner  = document.getElementById('banner');
+  const clockEl = document.getElementById('clock');
+
+  let consecutiveFails = 0;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  }
+
+  function lat(v) { return (v == null) ? '—' : v + ' ms'; }
+
+  function hostCard(h) {
+    const up = h.status === 'up';
+    const svcs = (h.services || []).map(s => `
+      <span class="svc ${s.status}">
+        <span class="sd"></span>${esc(s.name)}:${esc(s.port)}
+      </span>`).join('');
+    return `
+      <div class="card ${up ? 'up' : 'down'}">
+        <div class="card-head">
+          <span class="dot"></span>
+          <span class="hname">${esc(h.name)}</span>
+          <span class="role">${esc(h.role || 'host')}</span>
+        </div>
+        <div class="meta">
+          <span class="ip">${esc(h.ip)}</span>
+          <span>${up ? 'ONLINE' : 'OFFLINE'}</span>
+          <span class="lat"><b>${lat(h.latency_ms)}</b></span>
+        </div>
+        <div class="note">${esc(h.note || '')}</div>
+        ${svcs ? `<div class="svcs">${svcs}</div>` : ''}
+      </div>`;
+  }
+
+  function render(snap) {
+    banner.classList.remove('show');
+    const s = snap.summary || { up: 0, total: 0 };
+    const allUp = s.up === s.total && s.total > 0;
+    summary.className = 'pill' + (allUp ? '' : ' bad');
+    summary.innerHTML = `NODES <b>${s.up}/${s.total}</b> · ${snap.generated_ms} ms`;
+    grid.innerHTML = (snap.hosts || []).map(hostCard).join('') ||
+      '<div class="card down"><div class="note">No hosts configured in agent.json → network.hosts</div></div>';
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch('/api/monitor', { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      render(await res.json());
+      consecutiveFails = 0;
+    } catch (e) {
+      consecutiveFails++;
+      if (consecutiveFails >= 2) {
+        banner.classList.add('show');
+        summary.className = 'pill bad';
+        summary.innerHTML = 'SIGNAL LOST';
+      }
+    }
+  }
+
+  function tick() {
+    const d = new Date();
+    clockEl.textContent = d.toTimeString().slice(0, 8);
+  }
+
+  // Tap the header to force an immediate re-scan.
+  document.querySelector('header').addEventListener('click', poll);
+
+  tick(); setInterval(tick, 1000);
+  poll(); setInterval(poll, REFRESH_MS);
+</script>
+</body>
+</html>

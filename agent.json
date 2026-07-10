@@ -30,9 +30,44 @@
   },
 
   "gui": {
+    "host": "0.0.0.0",
     "port": 7477,
     "skin": "ui\\silverhand.html",
     "open_browser": true
+  },
+
+  "network": {
+    "refresh_seconds": 5,
+    "timeout_ms": 1500,
+    "hosts": [
+      {
+        "name": "Main PC",
+        "ip": "192.168.1.131",
+        "role": "workstation",
+        "note": "Silverhand host",
+        "services": [
+          { "name": "LM Studio", "port": 1234 },
+          { "name": "Silverhand", "port": 7477 }
+        ]
+      },
+      {
+        "name": "Server",
+        "ip": "192.168.1.200",
+        "role": "nas",
+        "note": "MYCLOUDEX2ULTRA",
+        "services": [
+          { "name": "SMB", "port": 445 },
+          { "name": "Web UI", "port": 80 }
+        ]
+      },
+      {
+        "name": "This Tablet",
+        "ip": "192.168.1.86",
+        "role": "monitor",
+        "note": "Command monitor",
+        "services": []
+      }
+    ]
   },
 
   "nas": {
