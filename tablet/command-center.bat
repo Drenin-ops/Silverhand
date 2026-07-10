@@ -6,7 +6,7 @@ REM  Edit HOST / PORT below if your Main PC's IP is different.
 REM ============================================================
 
 setlocal
-set "HOST=192.168.1.131"
+set "HOST=10.0.0.131"
 set "PORT=7477"
 set "URL=http://%HOST%:%PORT%/monitor"
 

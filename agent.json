@@ -42,7 +42,7 @@
     "hosts": [
       {
         "name": "Main PC",
-        "ip": "192.168.1.131",
+        "ip": "10.0.0.131",
         "role": "workstation",
         "note": "Silverhand host",
         "services": [
@@ -52,7 +52,7 @@
       },
       {
         "name": "Server",
-        "ip": "192.168.1.200",
+        "ip": "10.0.0.200",
         "role": "nas",
         "note": "MYCLOUDEX2ULTRA",
         "services": [
@@ -62,7 +62,7 @@
       },
       {
         "name": "This Tablet",
-        "ip": "192.168.1.86",
+        "ip": "10.0.0.86",
         "role": "monitor",
         "note": "Command monitor",
         "services": []

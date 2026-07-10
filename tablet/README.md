@@ -8,7 +8,7 @@ running on the Main PC (`.131`). Both just open the monitor dashboard at
 
 1. Copy this file onto the tablet (email it, USB, cloud, or serve it).
 2. Open it in the tablet's browser.
-3. Confirm the **Host IP** (default `192.168.1.131`) and tap **CONNECT**.
+3. Confirm the **Host IP** (default `10.0.0.131`) and tap **CONNECT**.
 4. Tick **Auto-connect next time** to skip the form on future opens.
 5. Use the browser's **"Add to Home Screen"** so it launches like an app.
 
@@ -28,4 +28,4 @@ your Main PC's IP differs. For a locked-down fullscreen display, switch
   reachable on the LAN — that means `gui.host` is `0.0.0.0` in `agent.json`
   (already set) and Windows Firewall allows inbound TCP **7477**.
 - Both devices on the same network. Adjust the IP if your subnet isn't
-  `192.168.1.x`.
+  `10.0.0.x`.
