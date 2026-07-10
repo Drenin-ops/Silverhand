@@ -29,6 +29,7 @@ PORT         = cfg.gui_port
 UI_DIR       = Path(__file__).parent        # D:\Silverhand\ui\
 HTML_FILE    = UI_DIR / "silverhand.html"
 MONITOR_FILE = UI_DIR / "monitor.html"
+LAUNCH_FILE  = UI_DIR.parent / "tablet" / "command-center.html"
 
 # ── State ─────────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,15 @@ async def index():
 async def monitor_page():
     """Network command monitor — open this from the tablet."""
     return FileResponse(str(MONITOR_FILE))
+
+
+@_app.get("/launch")
+async def launch_page():
+    """
+    Zero-copy tablet launcher: browse to http://<pc-ip>:7477/launch and the
+    page auto-fills the host from the address you reached it on.
+    """
+    return FileResponse(str(LAUNCH_FILE))
 
 
 @_app.get("/api/monitor")

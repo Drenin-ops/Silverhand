@@ -121,7 +121,14 @@
   const $ = id => document.getElementById(id);
   const KEY = 'silverhand.cmd';
 
-  // Restore saved host/port/auto preference.
+  // When served over HTTP (via /launch on the PC), default to whatever address
+  // the tablet used to reach this page — usually zero typing needed.
+  if (location.protocol.startsWith('http') && location.hostname) {
+    $('host').value = location.hostname;
+    if (location.port) $('port').value = location.port;
+  }
+
+  // A saved choice from a previous visit wins over the defaults above.
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
     if (saved.host) $('host').value = saved.host;
