@@ -22,3 +22,12 @@
 - Phase 1 DONE: carusb.py built + tested on Linux (convert, flatten, rename)
 - Open: test on real phone + Avalon; verify Toyota limits (folder/file caps)
 - Next: optional Android shortcut (Termux:Widget) for one-tap run
+
+## PC workflow (dedicated stick)
+1. One-time: format stick **FAT32** (Windows: right-click > Format > FAT32; >32GB: use `guiformat` or `diskpart`). Single partition only.
+2. Copy docs/other files anywhere on the stick as usual. Keep them out of `Music/`.
+3. Music: `python usbmusic\carusb.py "C:\Users\you\Music\MyFolder" --usb E:\`
+   - Rebuilds only `E:\Music`; other files untouched
+   - Warns if stick isn't FAT32; omit `--usb` if only one removable drive is plugged in
+4. Safely eject, plug into car.
+- Phase 2 DONE: Windows drive/FS detection, mac junk cleanup

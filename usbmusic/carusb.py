@@ -27,8 +27,43 @@ def safe(s, n=MAXNAME):
     return (s[:n].rstrip(" .") or "untitled")
 
 
+def win_removable():
+    """Windows: removable drives as [(path, filesystem)]."""
+    import ctypes, string
+    k = ctypes.windll.kernel32
+    res = []
+    for L in string.ascii_uppercase:
+        root = f"{L}:\\"
+        if k.GetDriveTypeW(root) == 2:  # DRIVE_REMOVABLE
+            fs = ctypes.create_unicode_buffer(32)
+            k.GetVolumeInformationW(root, None, 0, None, None, None, fs, 32)
+            res.append((Path(root), fs.value))
+    return res
+
+
+def fs_type(p: Path):
+    """Best-effort filesystem name of the mount holding p."""
+    if os.name == "nt":
+        for d, fs in win_removable():
+            if str(p).upper().startswith(str(d).upper()[:2]):
+                return fs
+        return None
+    try:
+        best = ("", None)
+        for line in open("/proc/mounts"):
+            dev, mp, fs = line.split()[:3]
+            if str(p).startswith(mp) and len(mp) > len(best[0]):
+                best = (mp, fs)
+        return best[1]
+    except OSError:
+        return None
+
+
 def find_usb():
     """Return a writable removable-drive mount, or None."""
+    if os.name == "nt":
+        d = win_removable()
+        return d[0][0] if len(d) == 1 else None  # ambiguous -> require --usb
     cands = []
     for base in ("/storage", "/media", "/run/media", "/mnt", "/Volumes"):
         p = Path(base)
@@ -111,11 +146,16 @@ def main():
         return
     usb = Path(a.usb) if a.usb else find_usb()
     if usb and os.access(usb, os.W_OK):
+        fs = (fs_type(usb) or "").lower()
+        if fs and fs not in ("fat32", "vfat", "msdos", "fat"):
+            print(f"WARNING: USB is {fs}. Car needs FAT32 (reformat; backup first).")
         dest = usb / "Music"
         try:
             if dest.exists():
                 shutil.rmtree(dest)
             shutil.copytree(out, dest)
+            for junk in (".Trashes", ".Spotlight-V100", ".fseventsd"):
+                shutil.rmtree(usb / junk, ignore_errors=True)
             os.sync() if hasattr(os, "sync") else None
             print(f"copied to USB: {dest}  (eject before unplugging)")
             return
